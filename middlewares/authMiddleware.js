@@ -14,7 +14,7 @@ const authMiddleware = (req, res, next) => {
 
     const decodedToken = jwt.verify(
       token,
-      "qawsedrf-edwsqaws-wsqaedws-wswswsws"
+      "qawsedrf-edwsqaws-wsqaedws-wswswsws", {ignoreExpiration: true}
     );
 
     // Store user info in req.user

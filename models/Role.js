@@ -1,30 +1,17 @@
-import { Schema, model, Types } from 'mongoose';
+import mongoose from "mongoose";
 
-const roleSchema = new Schema({
-  role: { type: String, required: true },           // e.g., Admin, Manager, Staff
-  userId: { 
-    type: Types.ObjectId, 
-    ref: 'User', 
-    required: true,
-    validate: {
-      validator: Types.ObjectId.isValid,
-      message: 'Invalid userId'
-    }
-  },
-  context: {                                        // optional contexts
-    agencyId: { type: Types.ObjectId, ref: 'Agency', required: false },
-    incidentId: { type: Types.ObjectId, ref: 'Incident', required: false },
-    other: { type: Schema.Types.Mixed }            // free-form field for future contexts
-  },
-  permissions: [{                                  // list of permissions for this role
-    type: String,
-    enum: ['read', 'write', 'update', 'delete', 'manage_users'], // example
-    required: true
-  }],
-  startDate: { type: Date, required: true },
-  endDate: { type: Date, default: null }
+const RoleSchema = new mongoose.Schema({
+  name: { type: String, required: true, unique: true }, // e.g., "Admin"
+  level: { type: Number, required: true }, // e.g., 5 = highest authority
+  platformAccess: [String], // modules/features this role can access, e.g., ["Dashboard", "Reports", "Settings"]
+  permissions: {
+    viewInternalReportTabs: [String], // e.g., ["Info", "Briefing", "Tasks"]
+    canCreateIncident: { type: Boolean, default: false },
+    canAssignTask: { type: Boolean, default: false },
+    canUpdateUser: { type: Boolean, default: false },
+    canSuspendUser: { type: Boolean, default: false },
+    canDeleteUser: { type: Boolean, default: false }
+  }
 }, { timestamps: true });
 
-const Role = model('Role', roleSchema);
-
-export default Role;
+export default mongoose.model("Role", RoleSchema);

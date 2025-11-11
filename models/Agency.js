@@ -1,46 +1,43 @@
-import mongoose,  { Schema, Types } from "mongoose";
+import mongoose from 'mongoose';
 
+// Define the schema for the agency (with nested branches and notifications)
+const agencySchema = new mongoose.Schema({
+  agency_id: { type: String, required: true },
+  agency_name: { type: String, required: true },
+  agency_type: { type: String, required: true },
+  contact_email: { type: String, required: true },
+  contact_phone: { type: String, required: true },
+  contact_address: { type: String, required: true },
+  nmdpra_registration_number: { type: String, required: true },
+  nmdpra_sector: { type: String, required: true },
+  nmdpra_operational_area: { type: String, required: true },
 
-const AgencySchema = new Schema({
-  name: { type: String, required: true }, // e.g. "Fire Service"
-  description: { type: String },
-
-  // Array of Branch references
+  // Branches array inside the agency schema
   branches: [
-    { type: Types.ObjectId, ref: "Branch" }
+    {
+      branch_id: { type: String, required: true },
+      branch_name: { type: String, required: true },
+      zone: { type: String, required: true },
+      state: { type: String, required: true },
+      local_government: { type: String, required: true },
+      address: { type: String, required: true },
+      contact_email: { type: String, required: true },
+      contact_phone: { type: String, required: true },
+      latitude: { type: Number, required: true },
+      longitude: { type: Number, required: true },
+    },
   ],
 
-  // Contact information
-  primaryContact: {
-    name: { type: String },
-    title: { type: String },
-    email: { type: String },
-    phone: { type: String }
-  },
-
-  // Location info (headquarters or central office)
-  headquarters: {
-    address: { type: String },
-    city: { type: String },
-    state: { type: String },
-    country: { type: String },
-    zipCode: { type: String }
-  },
-
-  // Agency type and jurisdiction
-  agencyType: { type: String, enum: ["Fire", "Police", "Health", "Environmental", "Other"] },
-  jurisdiction: { type: String }, // e.g., "City", "State", "Federal"
-
-  // Operational info
-  active: { type: Boolean, default: true },
-  lastAuditDate: { type: Date },
-
-  // 👇 Reference to members collection
-  members: [
-    { type: Types.ObjectId, ref: "User" }
+  // Notifications array inside the agency schema
+  notifications: [
+    {
+      incident_id: { type: String, required: true },
+      branch_id: { type: String, required: true },
+      notification_time: { type: Date, default: Date.now },
+      notification_type: { type: String, default: 'Email' }, // Email, SMS, etc.
+      notification_status: { type: String, default: 'Sent' }, // Sent, Pending, etc.
+    },
   ],
+});
 
-}, { timestamps: true });
-
-const Agency = mongoose.model("Agency", AgencySchema);
-export default Agency;
+export default mongoose.model('Agency', agencySchema);

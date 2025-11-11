@@ -1,146 +1,111 @@
-// controllers/agencyController.js
-import Agency from "../models/Agency.js";
+import Agency from '../models/appModel.js';
 
-// @desc    Create a new agency
-// @route   POST /api/agencies
-// @access  Private (admin/middleware handles auth)
-export const createAgency = async (req, res) => {
+// Get all agencies
+export const getAllAgencies = async (req, res) => {
   try {
-    const { name, description, agencyType, jurisdiction, headquarters, primaryContact } = req.body;
-
-    if (!name) {
-      return res.status(400).json({ success: false, message: "Agency name is required" });
-    }
-
-    const newAgency = await Agency.create({
-      name,
-      description,
-      agencyType,
-      jurisdiction,
-      headquarters,
-      primaryContact,
-      active: true,
-    });
-
-    res.status(201).json({
-      success: true,
-      message: "Agency created successfully",
-      data: newAgency,
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    const agencies = await Agency.find();
+    res.status(200).json(agencies);
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching agencies', error: err });
   }
 };
 
-// @desc    Get all agencies
-// @route   GET /api/agencies
-// @access  Private
-export const getAgencies = async (req, res) => {
-  try {
-    const agencies = await Agency.find().populate("branches").populate("members");
-
-    res.status(200).json({
-      success: true,
-      message: "Agencies retrieved successfully",
-      data: agencies,
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-// @desc    Get single agency by ID
-// @route   GET /api/agencies/:id
-// @access  Private
+// Get an agency by ID
 export const getAgencyById = async (req, res) => {
   try {
-    const agency = await Agency.findById(req.params.id).populate("branches").populate("members");
-
-    if (!agency) {
-      return res.status(404).json({ success: false, message: "Agency not found" });
-    }
-
-    res.status(200).json({
-      success: true,
-      message: "Agency retrieved successfully",
-      data: agency,
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-// @desc    Update agency
-// @route   PUT /api/agencies/:id
-// @access  Private (admin/middleware handles auth)
-export const updateAgency = async (req, res) => {
-  try {
-
     const agency = await Agency.findById(req.params.id);
-
     if (!agency) {
-      return res.status(404).json({ success: false, message: "Agency not found" });
+      return res.status(404).json({ message: 'Agency not found' });
     }
-
-    Object.assign(agency, req.body);
-    await agency.save();
-
-    res.status(200).json({
-      success: true,
-      message: "Agency updated successfully",
-      data: agency,
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-// @desc    Delete agency
-// @route   DELETE /api/agencies/:id
-// @access  Private (admin/middleware handles auth)
-export const deleteAgency = async (req, res) => {
-  try {
-    const agency = await Agency.findById(req.params.id);
-
-    if (!agency) {
-      return res.status(404).json({ success: false, message: "Agency not found" });
-    }
-
-    await agency.remove();
-
-    res.status(200).json({
-      success: true,
-      message: "Agency deleted successfully",
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-
-
-
-export const getAgencie = async () => {
-  try {
-    const agencies = await Agency.find({})
-      .select('-_id -__v -createdAt -updatedAt')
-      .populate({
-        path: 'members',
-        select: '-_id -__v -createdAt -updatedAt firstName lastName level role'
-      })
-      .populate({
-        path: 'branches',
-        select: '-_id -__v -createdAt -updatedAt name location'
-      });
-
-    return {
-      success: true,
-      data: agencies
-    };
+    res.status(200).json(agency);
   } catch (err) {
-    return {
-      success: false,
-      message: err.message
+    res.status(500).json({ message: 'Error fetching agency', error: err });
+  }
+};
+
+// Create a new agency
+export const createAgency = async (req, res) => {
+  try {
+    const newAgency = new Agency(req.body);
+    await newAgency.save();
+    res.status(201).json(newAgency);
+  } catch (err) {
+    res.status(500).json({ message: 'Error creating agency', error: err });
+  }
+};
+
+// Add a new branch to an agency
+export const addBranchToAgency = async (req, res) => {
+  try {
+    const agency = await Agency.findById(req.params.agencyId);
+    if (!agency) {
+      return res.status(404).json({ message: 'Agency not found' });
+    }
+
+    agency.branches.push(req.body); // Add new branch to the agency's branches array
+    await agency.save();
+    res.status(201).json(agency);
+  } catch (err) {
+    res.status(500).json({ message: 'Error adding branch', error: err });
+  }
+};
+
+// Report an incident and send notification
+export const reportIncident = async (req, res) => {
+  try {
+    const { incident_id, branch_id, description, incident_time, latitude, longitude } = req.body;
+    
+    // Create the incident object
+    const incident = {
+      incident_id,
+      branch_id,
+      description,
+      incident_time,
+      location: { latitude, longitude }
     };
+
+    // Find the agency by ID
+    const agency = await Agency.findById(req.params.agencyId);
+    if (!agency) {
+      return res.status(404).json({ message: 'Agency not found' });
+    }
+
+    // Create and push notification to the agency's notifications array
+    const notification = {
+      incident_id: incident.incident_id,
+      branch_id: incident.branch_id,
+      notification_status: 'Pending',  // Default status
+    };
+
+    agency.notifications.push(notification);  // Add notification to agency
+    await agency.save();
+    
+    res.status(201).json({ message: 'Incident reported and notification created', incident });
+  } catch (err) {
+    res.status(500).json({ message: 'Error reporting incident', error: err });
+  }
+};
+
+// Send a notification
+export const sendNotification = async (req, res) => {
+  try {
+    const notification = {
+      incident_id: req.body.incident_id,
+      branch_id: req.body.branch_id,
+      notification_type: req.body.notification_type,
+      notification_status: 'Sent', // Assuming we are sending the notification
+    };
+
+    const agency = await Agency.findById(req.params.agencyId);
+    if (!agency) {
+      return res.status(404).json({ message: 'Agency not found' });
+    }
+
+    agency.notifications.push(notification);  // Add notification to the agency's notifications array
+    await agency.save();
+    
+    res.status(201).json({ message: 'Notification sent', notification });
+  } catch (err) {
+    res.status(500).json({ message: 'Error sending notification', error: err });
   }
 };

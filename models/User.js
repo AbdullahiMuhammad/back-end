@@ -1,43 +1,71 @@
-import mongoose, { Types } from "mongoose";
+import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 
 const userSchema = new mongoose.Schema({
-  firstName: { type: String },
-  lastName: { type: String },
+  // Personal Info
+  firstName: { type: String, required: true },
+  lastName: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  phone: { type: String, required: true },
+  address: { type: String },
+
+  // Location Info
   state: { type: String },
   zone: { type: String },
-  lga: { type: String },
-  email: { type: String, required: true, unique: true },
-  level: {
-    type: String,
-    enum: ["central", "zonal", "state", "agent"],
-    default: "agent",
-  },
-  
-  phone: { type: String },
-  password: { type: String, required: true },
-  organization: { type: Types.ObjectId, ref: 'Organization', required: false },
-  branch: { type: Types.ObjectId, ref: 'Organization.branches' }, // optional
-  roles: [{ type: Types.ObjectId, ref: "Role" }],
-  status: { type: String, enum: ['active', 'inactive', 'suspended'], default: 'active' },
-}, { timestamps: true });
+  localGovernment: { type: String },
 
-// Password hash before saving
+  // Roles & Levels
+  roles: [{ type: mongoose.Schema.Types.ObjectId, ref: "Role" }],
+  level: { type: Number, default: 1 }, // hierarchy or permissions
+  status: { type: String, enum: ["active", "inactive", "suspended"], default: "active" },
+
+  // Reputation
+  reputation: { type: Number, default: 0 },
+   
+  //profile pic
+  profilFic: {type: mongoose.Schema.Types.ObjectId, ref: ""},
+
+  // Comments / feedback on user
+  comments: [
+    {
+      commentedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+      comment: { type: String },
+      createdAt: { type: Date, default: Date.now }
+    }
+  ],
+   password: { type: String, required: true },
+},  { timestamps: true });
+
 userSchema.pre("save", async function(next) {
+  // Check if the password field is modified (i.e., it's a new user or password change)
   if (!this.isModified("password")) return next();
-  this.password = await bcrypt.hash(this.password, 10);
-  next();
+  
+
+  next();  // Continue to save
 });
+
 
 // Compare password method
-userSchema.methods.comparePassword = async function(password) {
-  return bcrypt.compare(password, this.password);
+userSchema.methods.matchPassword = async function(enteredPassword) {
+  return await bcrypt.compare(enteredPassword, this.password);
 };
-
-// Virtual field (not saved to DB)
 userSchema.virtual("fullName").get(function () {
-  return `${this.firstName} ${this.lastName}`.trim();
+  return `${this.firstName} ${this.lastName}`;
 });
 
-const User = mongoose.model('User', userSchema);
-export default User;
+// Middleware to update reputation automatically when a task is completed
+userSchema.methods.updateReputation = function() {
+  const totalPoints = this.tasks.reduce((acc, task) => {
+    return acc + (task.status === "completed" ? task.points : 0);
+  }, 0);
+  this.reputation = totalPoints;
+  return this.reputation;
+};
+
+userSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+  next();
+});
+export default mongoose.model("User", userSchema);

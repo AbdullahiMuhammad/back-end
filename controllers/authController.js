@@ -1,5 +1,6 @@
 import User from "../models/User.js";
 import jwt from 'jsonwebtoken';
+import bcrypt from "bcryptjs";
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -34,13 +35,13 @@ export const loginUser = async (req, res) => {
     }
 
     // Find the user by email
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).select('+password');
     if (!user) {
       return res.status(400).json({ success: false, message: 'Invalid credentials' });
     }
 
     // Compare password (assuming comparePassword method is defined in the User model)
-    const isMatch = await user.comparePassword(password);
+    const isMatch = bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ success: false, message: 'Invalid credentials' });
     }

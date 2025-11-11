@@ -3,9 +3,6 @@ import dotenv from "dotenv";
 import Branch from '../models/Branch.js';
 
 
-
-
-
 dotenv.config();
 
 // --- Nodemailer Transporter ---

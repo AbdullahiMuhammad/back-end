@@ -39,10 +39,7 @@ export const getAllIncidents = async (req, res) => {
 
     // 🟢 CENTRAL — sees everything
     if (user.level === "central") {
-      const incidents = await Incident.find({})
-        .populate("createdBy", "name email role")
-        .populate("members.user", "name email role")
-        .populate("reports");
+      const incidents = await Incident.find({}).sort({ createdAt: -1})
 
       return res.status(200).json({
         success: true,
@@ -71,9 +68,7 @@ export const getAllIncidents = async (req, res) => {
     }
 
     const incidents = await Incident.find(filter)
-      .populate("createdBy", "name email role")
-      .populate("members.user", "name email role")
-      .populate("reports");
+    
 
     res.status(200).json({
       success: true,
@@ -89,6 +84,7 @@ export const getAllIncidents = async (req, res) => {
     });
   }
 };
+
 
 // --- Get Single Incident ---
 export const getIncident = async (req, res) => {
@@ -174,8 +170,7 @@ export const getAllIncident = async (req, res) => {
   try {
     const incidents = await Incident.find()
       .populate("members.user", "name email")
-      .populate("createdBy", "name email");
-
+      
     res.status(200).json({ success: true, incidents });
   } catch (err) {
     console.error(err);

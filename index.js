@@ -1,54 +1,40 @@
-import express from 'express';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import dotenv from "dotenv";
 dotenv.config();
-
+import express from 'express';
+import cors from 'cors';
 import connectDB from './db/db.js';
 import authRoute from './routes/authRouter.js';
 import userRouter from "./routes/userRouter.js";
-import organizationRoutes from './routes/organizationRoutes.js';
-import investigationRoutes from "./routes/investigationRoutes.js";
-import roleRoutes from "./routes/roleRoutes.js";
-import incidentReportRoutes from './routes/incidentReportRoutes.js';
 import incidentRoutes from './routes/incidentRoutes.js';
-import incidentAlertRouter from "./routes/incidentAlertsRoutes.js";
-import branchRouter from "./routes/branchRoutes.js";
-import agencyRoutes from "./routes/agencyRoutes.js";
-
+import reportRoute from './routes/reportRouters.js'
+import requestRouter from './routes/reportRouters.js'
+import notifyRoute from "./routes/notificationRoutes.js";
 const app = express();
 connectDB();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+app.use(cors({
+  origin: 'http://localhost:5173',  // Allow your frontend origin
+  credentials: true,  // Allow cookies (if you need them for auth)
+}));
+//const __filename = fileURLToPath(import.meta.url);
+//const __dirname = path.dirname(__filename);
 
-const PORT = process.env.PORT || 5000;
-
-// Serve React static files
-app.use(express.static(path.join(__dirname, '../front-copy/dist')));
-
-// Example API route
 
 app.use(express.json());
 
 app.use('/api/auth', authRoute);
 app.use('/api/user', userRouter);
-app.use('/api/organizations', organizationRoutes);
-app.use("/api/investigations", investigationRoutes);
-app.use("/api/roles", roleRoutes);
-app.use('/api/reports', incidentReportRoutes);
 app.use('/api/incident', incidentRoutes);
-app.use('/api/agency', agencyRoutes);
-app.use('/api/branch', branchRouter);
-app.use('/api/incident-alerts', incidentAlertRouter);
+app.use('/api/report', reportRoute);
+app.use('/api/request', requestRouter);
+app.use('/api/notification', notifyRoute);
+
+
+// Serve React static files
+//app.use(express.static(path.join(__dirname, '../front-copy/dist')));
 
 
 
-// Catch-all route: use regex path
-app.get(/.*/, (req, res) => {
-  res.sendFile(path.join(__dirname, '../front-copy/dist', 'index.html'));
+app.listen(process.env.PORT, "localhost", ()=> {
+  console.log("server connected");
 });
-
-app.listen(PORT, () =>
-  console.log(`Server running at http://localhost:${PORT}`)
-);
